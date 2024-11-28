@@ -33,7 +33,7 @@ def send_whatsapp_message(phone_number, message):
         print(f"Error sending message to {phone_number}: {e}")
 
 def main():
-    sheet_name = sheet_name = "Python script whatsapp"
+    sheet_name = "Python script whatsapp"
     contacts = read_contacts_from_sheet(sheet_name)
     for contact in contacts:
         send_whatsapp_message(contact['Phone Number'], contact['Message'])

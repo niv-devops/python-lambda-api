@@ -2,8 +2,7 @@ import wikipediaapi
 import os
 
 def append_wikipedia_summary(topic):
-    """
-    Fetches the summary of a Wikipedia topic and appends it to `./outputs/wikipedia.txt` """
+    """ Fetches the summary of a Wikipedia topic and appends it to `./outputs/wikipedia.txt` """
     try:
         wiki = wikipediaapi.Wikipedia(
             language="en",
