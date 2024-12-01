@@ -47,27 +47,27 @@ pipeline {
         }
 
         stage('Install AWS CLI') {
-						steps {
-								script {
-								    def awsCliInstalled = sh(script: 'which aws || true', returnStdout: true).trim()
-								    if (!awsCliInstalled) {
-								        echo "AWS CLI not found. Installing..."
-								        sh '''
-								            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-								            unzip -o awscliv2.zip
-								            ./aws/install
-								        '''
-								    } else {
-								        echo "AWS CLI is already installed. Updating..."
-								        sh '''
-								            curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
-								            unzip -o awscliv2.zip
-								            ./aws/install --update
-								        '''
-								    }
-								}
-						}
-				}
+            steps {
+                    script {
+                        def awsCliInstalled = sh(script: 'which aws || true', returnStdout: true).trim()
+                        if (!awsCliInstalled) {
+                            echo "AWS CLI not found. Installing..."
+                            sh '''
+                                curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+                                unzip -o awscliv2.zip
+                                ./aws/install
+                            '''
+                        } else {
+                            echo "AWS CLI is already installed. Updating..."
+                            sh '''
+                                curl "https://awscli.amazonaws.com/awscli-exe-linux-x86_64.zip" -o "awscliv2.zip"
+                                unzip -o awscliv2.zip
+                                ./aws/install --update
+                            '''
+                        }
+                    }
+            }
+        }
 
         stage('Test Lambda Functions') {
             when {
@@ -109,49 +109,49 @@ pipeline {
         }
 
         stage('Deploy Lambda Functions') {
-						when {
-								expression { env.CHANGED_LAMBDA_FILES }
-						}
-						steps {
-								script {
-								    def lambdaFiles = env.CHANGED_LAMBDA_FILES.split('\n')
-								    lambdaFiles.each { file ->
-								        def functionName = file.replace('lambda-functions/', '').replace('.py', '').split('/')[0]
-								        echo "Deploying ${functionName} to AWS Lambda"
-								        sh "mkdir -p /tmp/${functionName}"
-								        sh "cp ${file} /tmp/${functionName}/"
-								        if (fileExists("lambda-functions/${functionName}/requirements.txt")) {
-								            echo "Installing dependencies for ${functionName} from requirements.txt"
-								            sh """
-								                python3 -m venv /tmp/${functionName}/venv
-								                . /tmp/${functionName}/venv/bin/activate
-								                pip install -r lambda-functions/${functionName}/requirements.txt
-								            """
-								            sh "cp -r /tmp/${functionName}/venv/lib/python3.*/site-packages/* /tmp/${functionName}/"
-								        }
-								        sh "find /tmp/${functionName} -name '*.json' -exec rm -f {} \\;"
-								        sh "cd /tmp/${functionName} && zip -r /tmp/${functionName}.zip ."
-								        
-								        def s3Bucket = "tasty-kfc-bucket"
-                				def s3Key = "lambda-deployment/${functionName}.zip"
-                				echo "Uploading ${functionName} to S3"
-                				withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY', credentialsId: 'aws-credentials']]) {
-								            sh "aws s3 cp /tmp/${functionName}.zip s3://${s3Bucket}/${s3Key}"
-								        }
-								        
-								        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY', credentialsId: 'aws-credentials']]) {
-								            sh """
-								                aws lambda update-function-code \
-								                --function-name ${functionName} \
-								                --s3-bucket ${s3Bucket} \
-                           		  --s3-key ${s3Key} \
-								                --region ${AWS_REGION}
-								            """
-								        }
-								    }
-								}
-						}
-				}
+            when {
+                    expression { env.CHANGED_LAMBDA_FILES }
+            }
+            steps {
+                script {
+                    def lambdaFiles = env.CHANGED_LAMBDA_FILES.split('\n')
+                    lambdaFiles.each { file ->
+                        def functionName = file.replace('lambda-functions/', '').replace('.py', '').split('/')[0]
+                        echo "Deploying ${functionName} to AWS Lambda"
+                        sh "mkdir -p /tmp/${functionName}"
+                        sh "cp ${file} /tmp/${functionName}/"
+                        if (fileExists("lambda-functions/${functionName}/requirements.txt")) {
+                            echo "Installing dependencies for ${functionName} from requirements.txt"
+                            sh """
+                                python3 -m venv /tmp/${functionName}/venv
+                                . /tmp/${functionName}/venv/bin/activate
+                                pip install -r lambda-functions/${functionName}/requirements.txt
+                            """
+                            sh "cp -r /tmp/${functionName}/venv/lib/python3.*/site-packages/* /tmp/${functionName}/"
+                        }
+                        sh "find /tmp/${functionName} -name '*.json' -exec rm -f {} \\;"
+                        sh "cd /tmp/${functionName} && zip -r /tmp/${functionName}.zip ."
+                        
+                        def s3Bucket = "tasty-kfc-bucket"
+                def s3Key = "lambda-deployment/${functionName}.zip"
+                echo "Uploading ${functionName} to S3"
+                withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY', credentialsId: 'aws-credentials']]) {
+                            sh "aws s3 cp /tmp/${functionName}.zip s3://${s3Bucket}/${s3Key}"
+                        }
+                        
+                        withCredentials([[$class: 'AmazonWebServicesCredentialsBinding', accessKeyVariable: 'AWS_ACCESS_KEY_ID', secretKeyVariable: 'AWS_SECRET_ACCESS_KEY', credentialsId: 'aws-credentials']]) {
+                            sh """
+                                aws lambda update-function-code \
+                                --function-name ${functionName} \
+                                --s3-bucket ${s3Bucket} \
+                    --s3-key ${s3Key} \
+                                --region ${AWS_REGION}
+                            """
+                        }
+                    }
+                }
+            }
+        }
         
         stage('Run Pylint on Website') {
             steps {
@@ -182,4 +182,3 @@ pipeline {
         }
     }
 }
-
